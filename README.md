@@ -8,7 +8,7 @@ Apichon Changkong
 ## Installation
 Clone the repository:
 ```bash
-git clone https://github.com/yourusername/playtorium-cart-discount.git
+git clone https://github.com/nohcipassob/playtorium-cart-discount.git
 cd playtorium-cart-discount
 ```
 ### Install dependencies:
