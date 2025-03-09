@@ -15,5 +15,9 @@ cd playtorium-cart-discount
 ```bash
 npm install
 ```
-
+## Runnung the Application
+## Development Mode
+```bash
+npm run start:dev
+```
 
