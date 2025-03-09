@@ -1,9 +1,9 @@
 export type DiscountResult = {
   originalTotal: number;
   finalPrice: number;
-  discountBreakdown: {
+  discount: {
+    id: string;
     campaign: string;
     amount: number;
   }[];
-  appliedCampaigns: string[];
 };
