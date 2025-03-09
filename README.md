@@ -104,6 +104,45 @@ Below is the structure of the request body for discount calculation:
     }
 }
 ```
+## Request Body Structure:
+| Field             | Type    | Description                                                              |
+| ----------------- | ------- | ------------------------------------------------------------------------ |
+| `cart.items`      | Array   | List of items in the cart                                                |
+| `cart.items[].id` | String  | Unique identifier for the item                                           |
+| `cart.items[].name` | String | Name of the item                                                         |
+| `cart.items[].price` | Number | Price of the item in THB                                                |
+| `cart.items[].category` | String | Category of the item (e.g., "Clothing", "Accessories")                  |
+| `cart.items[].quantity` | Number | Quantity of the item in the cart                                        |
+| `cart.customerPoints` | Number | Points accumulated by the customer that can be used for discounts       |
+
+### discounts (Object)
+Contains different types of applicable discounts.
+
+| Field               | Type   | Description                                                    |
+| ------------------- | ------ | -------------------------------------------------------------- |
+| `discounts.coupon`   | Array  | List of coupon discounts                                       |
+| `discounts.onTop`    | Array  | List of on-top discounts                                       |
+| `discounts.seasonal` | Array  | List of seasonal discounts                                     |
+
+## Discount Types
+
+### PercentageDiscount
+| Field        | Type    | Description                                                |
+| ------------ | ------- | ---------------------------------------------------------- |
+| `percentage` | Number  | Applies a percentage discount to the entire purchase       |
+
+### PercentageDiscountByItemCategory
+| Field       | Type    | Description                                                |
+| ----------- | ------- | ---------------------------------------------------------- |
+| `category`  | String  | Applies a percentage discount to items of a specific category (e.g., "Clothing") |
+| `percentage`| Number  | Percentage discount applied to items in the specified category |
+
+### SpecialCampaigns
+| Field        | Type    | Description                                                |
+| ------------ | ------- | ---------------------------------------------------------- |
+| `everyXTHB`  | Number  | For every X THB spent, Y THB is discounted                 |
+| `discountYTHB` | Number | Amount of discount (Y THB) applied for every X THB spent   |
+
 ## Testing
 ```bash
 npm run test
