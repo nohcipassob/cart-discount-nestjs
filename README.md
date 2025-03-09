@@ -16,8 +16,18 @@ cd playtorium-cart-discount
 npm install
 ```
 ## Runnung the Application
-## Development Mode
+### Development Mode
 ```bash
 npm run start:dev
 ```
+### Using Docker
+```bash
+docker build -t playtorium-products .
+docker run -d -p 3000:3000 --name playtorium-products playtorium-products
+```
+## API Documnetation
 
+## Testing
+```bash
+npm run test
+```
