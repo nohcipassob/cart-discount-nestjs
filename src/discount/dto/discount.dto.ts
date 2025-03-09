@@ -4,11 +4,15 @@ import {
   IsEnum,
   IsNotEmpty,
   IsObject,
+  IsOptional,
   IsString,
   ValidateNested,
+  Validate,
+  ArrayMaxSize,
 } from 'class-validator';
 import { CampaignCategory } from '../enums/campaign-category.enum';
 import { CartDto } from './cart.dto';
+import { DiscountTypeParametersValidator } from '../validator/discount-type-parameters.validator';
 
 export class DiscountCampaignDto {
   @IsString()
@@ -26,14 +30,33 @@ export class DiscountCampaignDto {
   @IsNotEmpty()
   type: string;
 
+  @IsObject()
+  @IsNotEmpty()
+  @Validate(DiscountTypeParametersValidator)
   parameters: Record<string, any>;
 }
 
 export class ApplyDiscountDto {
+  @IsOptional()
   @IsArray()
+  @ArrayMaxSize(1)
   @ValidateNested({ each: true })
   @Type(() => DiscountCampaignDto)
-  campaigns: DiscountCampaignDto[];
+  coupon?: DiscountCampaignDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => DiscountCampaignDto)
+  onTop?: DiscountCampaignDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => DiscountCampaignDto)
+  seasonal?: DiscountCampaignDto[];
 }
 
 export class DiscountRequestDto {

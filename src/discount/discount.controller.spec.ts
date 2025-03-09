@@ -9,9 +9,28 @@ describe('DiscountController', () => {
   let service: DiscountService;
 
   beforeEach(async () => {
+    const mockDiscountService = {
+      calculateDiscount: jest.fn().mockReturnValue({
+        originalTotal: 600,
+        finalPrice: 550,
+        discountBreakdown: [
+          {
+            campaign: 'Fixed Amount Discount',
+            amount: 50,
+          },
+        ],
+        appliedCampaigns: ['fixed1'],
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [DiscountController],
-      providers: [DiscountService],
+      providers: [
+        {
+          provide: DiscountService,
+          useValue: mockDiscountService,
+        },
+      ],
     }).compile();
 
     controller = module.get<DiscountController>(DiscountController);
@@ -44,15 +63,19 @@ describe('DiscountController', () => {
         customerPoints: 30,
       },
       discounts: {
-        campaigns: [
+        coupon: [
           {
             id: 'fixed1',
             name: 'Fixed Amount Discount',
             category: CampaignCategory.COUPON,
             type: 'FixedAmount',
-            parameters: { amount: 50 },
+            parameters: {
+              amount: 50,
+            },
           },
         ],
+        onTop: [],
+        seasonal: [],
       },
     };
 
@@ -68,13 +91,13 @@ describe('DiscountController', () => {
       appliedCampaigns: ['fixed1'],
     };
 
-    jest.spyOn(service, 'calculateDiscount').mockReturnValue(expectedResult);
-
     const result = controller.calculateDiscount(mockRequest);
     expect(result).toEqual(expectedResult);
     expect(service.calculateDiscount).toHaveBeenCalledWith(
       mockRequest.cart.items,
-      mockRequest.discounts.campaigns,
+      mockRequest.discounts.coupon,
+      mockRequest.discounts.onTop,
+      mockRequest.discounts.seasonal,
       mockRequest.cart.customerPoints,
     );
   });

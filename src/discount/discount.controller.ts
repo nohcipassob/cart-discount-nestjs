@@ -9,10 +9,15 @@ export class DiscountController {
 
   @Post('calculate')
   calculateDiscount(@Body() data: DiscountRequestDto): DiscountResult {
+    const { cart, discounts } = data;
+    const { coupon, onTop, seasonal } = discounts;
+
     return this.discountService.calculateDiscount(
-      data.cart.items,
-      data.discounts.campaigns,
-      data.cart.customerPoints || 0,
+      cart.items,
+      coupon || [],
+      onTop || [],
+      seasonal || [],
+      cart.customerPoints || 0,
     );
   }
 }

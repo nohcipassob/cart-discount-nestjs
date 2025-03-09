@@ -2,7 +2,6 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { CartItem } from './interfaces/cart-item.interface';
 import { DiscountCampaign } from './interfaces/discount-campaign.interface';
 import { CampaignCategory } from './enums/campaign-category.enum';
-import { ItemCategory } from './enums/item-category.enum';
 import { DiscountResult } from './interfaces/discount-result.interface';
 
 @Injectable()
@@ -11,7 +10,9 @@ export class DiscountService {
 
   calculateDiscount(
     items: CartItem[],
-    campaigns: DiscountCampaign[],
+    coupon: DiscountCampaign[],
+    onTop: DiscountCampaign[],
+    seasonal: DiscountCampaign[],
     customerPoints = 0,
   ): DiscountResult {
     if (!items.length) {
@@ -20,90 +21,66 @@ export class DiscountService {
 
     const originalTotal = this.calculateTotal(items);
     let currentTotal = originalTotal;
-    const discountBreakdown: { campaign: string; amount: number }[] = [];
+    const discount: { id: string; campaign: string; amount: number }[] = [];
     const appliedCampaigns: string[] = [];
 
-    const groupedCampaigns = this.groupCampaignsByCategory(campaigns);
-
-    const orderedCategories = [
-      CampaignCategory.COUPON,
-      CampaignCategory.ON_TOP,
-      CampaignCategory.SEASONAL,
-    ];
-
-    for (const category of orderedCategories) {
-      const categoryCampaigns = groupedCampaigns.get(category) || [];
-      if (!categoryCampaigns.length) continue;
-
-      const bestCampaign = this.findBestCampaign(
-        categoryCampaigns,
+    // Apply coupon discounts
+    if (coupon.length) {
+      const couponDiscount = this.calculateCampaignDiscount(
+        coupon[0],
         items,
         currentTotal,
         customerPoints,
       );
+      currentTotal -= couponDiscount;
+      discount.push({
+        id: coupon[0].id,
+        campaign: coupon[0].name,
+        amount: couponDiscount,
+      });
+    }
 
-      if (bestCampaign) {
-        const discount = this.calculateCampaignDiscount(
-          bestCampaign,
-          items,
-          currentTotal,
-          customerPoints,
-        );
-        currentTotal -= discount;
+    // Apply onTop discounts
+    if (onTop.length) {
+      const onTopDiscount = this.calculateCampaignDiscount(
+        onTop[0],
+        items,
+        currentTotal,
+        customerPoints,
+      );
+      currentTotal -= onTopDiscount;
+      discount.push({
+        id: onTop[0].id,
+        campaign: onTop[0].name,
+        amount: onTopDiscount,
+      });
+    }
 
-        discountBreakdown.push({
-          campaign: bestCampaign.name,
-          amount: discount,
-        });
-        appliedCampaigns.push(bestCampaign.id);
-      }
+    // Apply seasonal discounts
+    if (seasonal.length) {
+      const seasonalDiscount = this.calculateCampaignDiscount(
+        seasonal[0],
+        items,
+        currentTotal,
+        customerPoints,
+      );
+      currentTotal -= seasonalDiscount;
+      discount.push({
+        id: seasonal[0].id,
+        campaign: seasonal[0].name,
+        amount: seasonalDiscount,
+      });
     }
 
     return {
       originalTotal,
       finalPrice: currentTotal,
-      discountBreakdown,
-      appliedCampaigns,
+      discount,
     };
   }
 
   private calculateTotal(items: CartItem[]): number {
     return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  }
-
-  private groupCampaignsByCategory(
-    campaigns: DiscountCampaign[],
-  ): Map<CampaignCategory, DiscountCampaign[]> {
-    return campaigns.reduce((map, campaign) => {
-      if (!map.has(campaign.category)) map.set(campaign.category, []);
-      map.get(campaign.category)?.push(campaign);
-      return map;
-    }, new Map<CampaignCategory, DiscountCampaign[]>());
-  }
-
-  private findBestCampaign(
-    campaigns: DiscountCampaign[],
-    items: CartItem[],
-    total: number,
-    customerPoints: number,
-  ): DiscountCampaign | null {
-    return campaigns.reduce(
-      (best, campaign) => {
-        const discount = this.calculateCampaignDiscount(
-          campaign,
-          items,
-          total,
-          customerPoints,
-        );
-        return discount >
-          (best
-            ? this.calculateCampaignDiscount(best, items, total, customerPoints)
-            : 0)
-          ? campaign
-          : best;
-      },
-      null as DiscountCampaign | null,
-    );
   }
 
   private calculateCampaignDiscount(
@@ -123,7 +100,6 @@ export class DiscountService {
         return 0;
     }
   }
-
   private applyCouponDiscount(
     campaign: DiscountCampaign,
     total: number,
