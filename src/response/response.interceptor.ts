@@ -5,6 +5,7 @@ import {
   CallHandler,
   HttpException,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
@@ -12,8 +13,8 @@ import { catchError, map } from 'rxjs/operators';
 export type Response<T> = {
   status: boolean;
   statusCode: number;
-  path: string;
-  message: string;
+  //path: string;
+  message: string | object;
 };
 
 @Injectable()
@@ -40,11 +41,20 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
+    // Handle validation errors
+    let message: string | object = exception.message;
+    if (exception instanceof BadRequestException) {
+      const responseMessage = exception.getResponse();
+      if (typeof responseMessage === 'object' && responseMessage['message']) {
+        message = responseMessage['message']; // Extract validation errors
+      }
+    }
+
     response.status(status).json({
       status: false,
       statusCode: status,
-      path: request.url,
-      message: exception.message,
+      //path: request.url,
+      message,
     });
   }
 
@@ -57,7 +67,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
     return {
       status: true,
       statusCode,
-      path: request.url,
+      //path: request.url,
       message: '',
       data: res,
     };
