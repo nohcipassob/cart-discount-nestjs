@@ -28,6 +28,8 @@ docker run -d -p 3000:3000 --name playtorium-products playtorium-products
 ## API Documnetation
 API Documentation
 A Postman collection is included with this project to help you explore and test the available endpoints.
+>[!NOTE]
+> Postman collection inside /docs directory
 ## Request Body Structure
 Below is the structure of the request body for discount calculation:
 ```json
