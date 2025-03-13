@@ -5,6 +5,7 @@ import { DiscountCampaign } from './interfaces/discount-campaign.interface';
 import { CampaignCategory } from './enums/campaign-category.enum';
 import { ItemCategory } from './enums/item-category.enum';
 import { BadRequestException } from '@nestjs/common';
+import { DiscountRequestDto } from './dto/discount.dto';
 
 describe('DiscountService', () => {
   let service: DiscountService;
@@ -57,16 +58,25 @@ describe('DiscountService', () => {
 
   it('should throw error for empty cart', () => {
     expect(() => {
-      service.calculateDiscount([], [], [], []);
+      service.calculateDiscount({
+        cart: { items: [] },
+        discounts: { coupon: [], onTop: [], seasonal: [] },
+      });
     }).toThrow(BadRequestException);
   });
 
   describe('Coupon Discounts', () => {
     it('should apply fixed amount discount correctly', () => {
-      const items = defaultItems;
-      const coupon = [couponCampaigns[0]]; // Fixed Amount Discount
+      const data: DiscountRequestDto = {
+        cart: { items: defaultItems },
+        discounts: {
+          coupon: [couponCampaigns[0]], // Fixed Amount Discount
+          onTop: [],
+          seasonal: [],
+        },
+      };
 
-      const result = service.calculateDiscount(items, coupon, [], []);
+      const result = service.calculateDiscount(data);
       expect(result.originalTotal).toBe(600);
       expect(result.finalPrice).toBe(550);
       expect(result.discount[0].amount).toBe(50);
@@ -74,10 +84,16 @@ describe('DiscountService', () => {
     });
 
     it('should apply percentage discount correctly', () => {
-      const items = defaultItems;
-      const coupon = [couponCampaigns[1]]; // Percentage Discount
+      const data: DiscountRequestDto = {
+        cart: { items: defaultItems },
+        discounts: {
+          coupon: [couponCampaigns[1]], // Percentage Discount
+          onTop: [],
+          seasonal: [],
+        },
+      };
 
-      const result = service.calculateDiscount(items, coupon, [], []);
+      const result = service.calculateDiscount(data);
       expect(result.originalTotal).toBe(600);
       expect(result.finalPrice).toBe(540);
       expect(result.discount[0].amount).toBe(60);
@@ -85,7 +101,7 @@ describe('DiscountService', () => {
     });
 
     it('should cap fixed amount discount to total price', () => {
-      const items = [
+      const smallItems = [
         {
           id: '1',
           name: 'Small Item',
@@ -94,7 +110,8 @@ describe('DiscountService', () => {
           quantity: 1,
         },
       ];
-      const coupon = [
+
+      const bigDiscount = [
         {
           id: 'bigDiscount',
           name: 'Large Fixed Discount',
@@ -104,7 +121,16 @@ describe('DiscountService', () => {
         },
       ];
 
-      const result = service.calculateDiscount(items, coupon, [], []);
+      const data: DiscountRequestDto = {
+        cart: { items: smallItems },
+        discounts: {
+          coupon: bigDiscount,
+          onTop: [],
+          seasonal: [],
+        },
+      };
+
+      const result = service.calculateDiscount(data);
       expect(result.originalTotal).toBe(30);
       expect(result.finalPrice).toBe(0);
       expect(result.discount[0].amount).toBe(30); // Should be capped at original total
@@ -113,7 +139,7 @@ describe('DiscountService', () => {
 
   describe('OnTop Discounts', () => {
     it('should apply percentage discount by item category correctly', () => {
-      const items: CartItem[] = [
+      const clothingItems: CartItem[] = [
         {
           id: '1',
           name: 'T-Shirt',
@@ -135,7 +161,6 @@ describe('DiscountService', () => {
           category: ItemCategory.ACCESSORIES,
           quantity: 1,
         },
-
         {
           id: '4',
           name: 'Bag',
@@ -145,7 +170,7 @@ describe('DiscountService', () => {
         },
       ];
 
-      const onTop: DiscountCampaign[] = [
+      const categoryDiscount: DiscountCampaign[] = [
         {
           id: 'catDiscount1',
           name: 'Clothing Discount',
@@ -158,7 +183,16 @@ describe('DiscountService', () => {
         },
       ];
 
-      const result = service.calculateDiscount(items, [], onTop, []);
+      const data: DiscountRequestDto = {
+        cart: { items: clothingItems },
+        discounts: {
+          coupon: [],
+          onTop: categoryDiscount,
+          seasonal: [],
+        },
+      };
+
+      const result = service.calculateDiscount(data);
       expect(result.originalTotal).toBe(2540);
       expect(result.finalPrice).toBe(2382.5);
       expect(result.discount[0].amount).toBe(157.5);
@@ -166,8 +200,7 @@ describe('DiscountService', () => {
     });
 
     it('should apply discount by points correctly with 20% cap', () => {
-      const items = defaultItems;
-      const onTop: DiscountCampaign[] = [
+      const pointsDiscount: DiscountCampaign[] = [
         {
           id: 'points1',
           name: 'Points Discount',
@@ -177,7 +210,19 @@ describe('DiscountService', () => {
         },
       ];
 
-      const result = service.calculateDiscount(items, [], onTop, [], 68);
+      const data: DiscountRequestDto = {
+        cart: {
+          items: defaultItems,
+          customerPoints: 68,
+        },
+        discounts: {
+          coupon: [],
+          onTop: pointsDiscount,
+          seasonal: [],
+        },
+      };
+
+      const result = service.calculateDiscount(data);
       expect(result.originalTotal).toBe(600);
       expect(result.finalPrice).toBe(532);
       expect(result.discount[0].amount).toBe(68);
@@ -185,8 +230,7 @@ describe('DiscountService', () => {
     });
 
     it('should cap points discount at 20% of total', () => {
-      const items = defaultItems;
-      const onTop: DiscountCampaign[] = [
+      const pointsDiscount: DiscountCampaign[] = [
         {
           id: 'points1',
           name: 'Points Discount',
@@ -196,7 +240,19 @@ describe('DiscountService', () => {
         },
       ];
 
-      const result = service.calculateDiscount(items, [], onTop, [], 200);
+      const data: DiscountRequestDto = {
+        cart: {
+          items: defaultItems,
+          customerPoints: 200,
+        },
+        discounts: {
+          coupon: [],
+          onTop: pointsDiscount,
+          seasonal: [],
+        },
+      };
+
+      const result = service.calculateDiscount(data);
       expect(result.originalTotal).toBe(600);
       // 20% of 600 = 120 (max discount allowed)
       expect(result.finalPrice).toBe(480);
@@ -231,7 +287,7 @@ describe('DiscountService', () => {
         },
       ];
 
-      const seasonal: DiscountCampaign[] = [
+      const seasonalDiscount: DiscountCampaign[] = [
         {
           id: 'special1',
           name: 'Every 300 THB Discount',
@@ -244,7 +300,16 @@ describe('DiscountService', () => {
         },
       ];
 
-      const result = service.calculateDiscount(items, [], [], seasonal);
+      const data: DiscountRequestDto = {
+        cart: { items },
+        discounts: {
+          coupon: [],
+          onTop: [],
+          seasonal: seasonalDiscount,
+        },
+      };
+
+      const result = service.calculateDiscount(data);
       expect(result.originalTotal).toBe(830);
       // 830 / 300 = 2.77, floor = 2, so 2 * 40 = 80 discount
       expect(result.finalPrice).toBe(750);
@@ -308,7 +373,16 @@ describe('DiscountService', () => {
         },
       ];
 
-      const result = service.calculateDiscount(items, coupon, onTop, seasonal);
+      const data: DiscountRequestDto = {
+        cart: { items },
+        discounts: {
+          coupon,
+          onTop,
+          seasonal,
+        },
+      };
+
+      const result = service.calculateDiscount(data);
       // Original total: (350 * 2) + 250 = 950
       expect(result.originalTotal).toBe(950);
 
@@ -329,8 +403,6 @@ describe('DiscountService', () => {
     });
 
     it('should apply points discount and other discounts together', () => {
-      const items = defaultItems;
-
       const coupon: DiscountCampaign[] = [
         {
           id: 'fixed1',
@@ -351,7 +423,19 @@ describe('DiscountService', () => {
         },
       ];
 
-      const result = service.calculateDiscount(items, coupon, onTop, [], 50);
+      const data: DiscountRequestDto = {
+        cart: {
+          items: defaultItems,
+          customerPoints: 50,
+        },
+        discounts: {
+          coupon,
+          onTop,
+          seasonal: [],
+        },
+      };
+
+      const result = service.calculateDiscount(data);
       // Original total: 600
       expect(result.originalTotal).toBe(600);
 
@@ -391,16 +475,32 @@ describe('DiscountService', () => {
         },
       ];
 
-      const result = service.calculateDiscount(items, coupon, [], []);
+      const data: DiscountRequestDto = {
+        cart: { items },
+        discounts: {
+          coupon,
+          onTop: [],
+          seasonal: [],
+        },
+      };
+
+      const result = service.calculateDiscount(data);
       expect(result.originalTotal).toBeCloseTo(333.33);
       expect(result.finalPrice).toBeCloseTo(299.997); // 333.33 - 33.333
       expect(result.discount[0].amount).toBeCloseTo(33.333);
     });
 
     it('should return original price when no discounts apply', () => {
-      const items = defaultItems;
+      const data: DiscountRequestDto = {
+        cart: { items: defaultItems },
+        discounts: {
+          coupon: [],
+          onTop: [],
+          seasonal: [],
+        },
+      };
 
-      const result = service.calculateDiscount(items, [], [], []);
+      const result = service.calculateDiscount(data);
       expect(result.originalTotal).toBe(600);
       expect(result.finalPrice).toBe(600);
       expect(result.discount.length).toBe(0);
@@ -427,9 +527,19 @@ describe('DiscountService', () => {
         },
       ];
 
-      const result = service.calculateDiscount(items, coupon, [], []);
+      const data: DiscountRequestDto = {
+        cart: { items },
+        discounts: {
+          coupon,
+          onTop: [],
+          seasonal: [],
+        },
+      };
+
+      const result = service.calculateDiscount(data);
       expect(result.originalTotal).toBe(0);
       expect(result.finalPrice).toBe(0);
+      expect(result.discount.length).toBe(1);
       expect(result.discount[0].amount).toBe(0);
     });
   });

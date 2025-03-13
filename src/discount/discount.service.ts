@@ -3,18 +3,18 @@ import { CartItem } from './interfaces/cart-item.interface';
 import { DiscountCampaign } from './interfaces/discount-campaign.interface';
 import { CampaignCategory } from './enums/campaign-category.enum';
 import { DiscountResult } from './interfaces/discount-result.interface';
+import { DiscountRequestDto } from './dto/discount.dto';
 
 @Injectable()
 export class DiscountService {
   private readonly MAX_POINTS_DISCOUNT = 0.2; // 20% of total
 
-  calculateDiscount(
-    items: CartItem[],
-    coupon: DiscountCampaign[],
-    onTop: DiscountCampaign[],
-    seasonal: DiscountCampaign[],
-    customerPoints = 0,
-  ): DiscountResult {
+  calculateDiscount(data: DiscountRequestDto): DiscountResult {
+    const { cart, discounts } = data;
+    const { coupon = [], onTop = [], seasonal = [] } = discounts;
+    const customerPoints = cart.customerPoints || 0;
+    const items = cart.items;
+
     if (!items.length) {
       throw new BadRequestException('No items in the cart');
     }
@@ -22,55 +22,31 @@ export class DiscountService {
     const originalTotal = this.calculateTotal(items);
     let currentTotal = originalTotal;
     const discount: { id: string; campaign: string; amount: number }[] = [];
-    const appliedCampaigns: string[] = [];
 
-    // Apply coupon discounts
-    if (coupon.length) {
-      const couponDiscount = this.calculateCampaignDiscount(
-        coupon[0],
-        items,
-        currentTotal,
-        customerPoints,
-      );
-      currentTotal -= couponDiscount;
-      discount.push({
-        id: coupon[0].id,
-        campaign: coupon[0].name,
-        amount: couponDiscount,
+    // Apply all discount types: coupon, onTop, seasonal
+    const applyDiscounts = (campaigns: DiscountCampaign[], type: string) => {
+      campaigns.forEach((campaign) => {
+        const campaignDiscount = this.calculateCampaignDiscount(
+          campaign,
+          items,
+          currentTotal,
+          customerPoints,
+        );
+        if (campaignDiscount >= 0) {
+          currentTotal -= campaignDiscount;
+          discount.push({
+            id: campaign.id,
+            campaign: campaign.name,
+            amount: campaignDiscount,
+          });
+        }
       });
-    }
+    };
 
-    // Apply onTop discounts
-    if (onTop.length) {
-      const onTopDiscount = this.calculateCampaignDiscount(
-        onTop[0],
-        items,
-        currentTotal,
-        customerPoints,
-      );
-      currentTotal -= onTopDiscount;
-      discount.push({
-        id: onTop[0].id,
-        campaign: onTop[0].name,
-        amount: onTopDiscount,
-      });
-    }
-
-    // Apply seasonal discounts
-    if (seasonal.length) {
-      const seasonalDiscount = this.calculateCampaignDiscount(
-        seasonal[0],
-        items,
-        currentTotal,
-        customerPoints,
-      );
-      currentTotal -= seasonalDiscount;
-      discount.push({
-        id: seasonal[0].id,
-        campaign: seasonal[0].name,
-        amount: seasonalDiscount,
-      });
-    }
+    // Apply the discounts
+    applyDiscounts(coupon, 'Coupon');
+    applyDiscounts(onTop, 'OnTop');
+    applyDiscounts(seasonal, 'Seasonal');
 
     return {
       originalTotal,
@@ -100,17 +76,20 @@ export class DiscountService {
         return 0;
     }
   }
+
   private applyCouponDiscount(
     campaign: DiscountCampaign,
     total: number,
   ): number {
     const { type, parameters } = campaign;
-    if (type === 'FixedAmount') {
-      return Math.min(parameters.amount, total);
-    } else if (type === 'PercentageDiscount') {
-      return (total * parameters.percentage) / 100;
+    switch (type) {
+      case 'FixedAmount':
+        return Math.min(parameters.amount, total);
+      case 'PercentageDiscount':
+        return (total * parameters.percentage) / 100;
+      default:
+        return 0;
     }
-    return 0;
   }
 
   private applyOnTopDiscount(
@@ -119,12 +98,14 @@ export class DiscountService {
     total: number,
     customerPoints: number,
   ): number {
-    if (campaign.type === 'DiscountByPoints') {
-      return this.applyPointsDiscount(total, customerPoints);
-    } else if (campaign.type === 'PercentageDiscountByItemCategory') {
-      return this.applyItemCategoryDiscount(campaign, items);
+    switch (campaign.type) {
+      case 'DiscountByPoints':
+        return this.applyPointsDiscount(total, customerPoints);
+      case 'PercentageDiscountByItemCategory':
+        return this.applyItemCategoryDiscount(campaign, items);
+      default:
+        return 0;
     }
-    return 0;
   }
 
   private applyItemCategoryDiscount(

@@ -93,12 +93,6 @@ describe('DiscountController', () => {
 
     const result = controller.calculateDiscount(mockRequest);
     expect(result).toEqual(expectedResult);
-    expect(service.calculateDiscount).toHaveBeenCalledWith(
-      mockRequest.cart.items,
-      mockRequest.discounts.coupon,
-      mockRequest.discounts.onTop,
-      mockRequest.discounts.seasonal,
-      mockRequest.cart.customerPoints,
-    );
+    expect(service.calculateDiscount).toHaveBeenCalledWith(mockRequest);
   });
 });

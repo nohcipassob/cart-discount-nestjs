@@ -9,15 +9,6 @@ export class DiscountController {
 
   @Post('calculate')
   calculateDiscount(@Body() data: DiscountRequestDto): DiscountResult {
-    const { cart, discounts } = data;
-    const { coupon, onTop, seasonal } = discounts;
-
-    return this.discountService.calculateDiscount(
-      cart.items,
-      coupon || [],
-      onTop || [],
-      seasonal || [],
-      cart.customerPoints || 0,
-    );
+    return this.discountService.calculateDiscount(data);
   }
 }
