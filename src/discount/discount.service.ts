@@ -14,46 +14,43 @@ export class DiscountService {
     const { coupon = [], onTop = [], seasonal = [] } = discounts;
     const customerPoints = cart.customerPoints || 0;
     const items = cart.items;
-
+  
     if (!items.length) {
       throw new BadRequestException('No items in the cart');
     }
-
+  
     const originalTotal = this.calculateTotal(items);
     let currentTotal = originalTotal;
     const discount: { id: string; campaign: string; amount: number }[] = [];
-
-    // Apply all discount types: coupon, onTop, seasonal
-    const applyDiscounts = (campaigns: DiscountCampaign[], type: string) => {
-      campaigns.forEach((campaign) => {
-        const campaignDiscount = this.calculateCampaignDiscount(
-          campaign,
-          items,
-          currentTotal,
-          customerPoints,
-        );
-        if (campaignDiscount >= 0) {
-          currentTotal -= campaignDiscount;
-          discount.push({
-            id: campaign.id,
-            campaign: campaign.name,
-            amount: campaignDiscount,
-          });
-        }
-      });
-    };
-
-    // Apply the discounts
-    applyDiscounts(coupon, 'Coupon');
-    applyDiscounts(onTop, 'OnTop');
-    applyDiscounts(seasonal, 'Seasonal');
-
+  
+    // Combine all the discount campaigns into a single array
+    const allDiscounts = [...coupon, ...onTop, ...seasonal];
+  
+    // Apply all discount types in a single loop
+    allDiscounts.forEach((campaign) => {
+      const campaignDiscount = this.calculateCampaignDiscount(
+        campaign,
+        items,
+        currentTotal,
+        customerPoints,
+      );
+      if (campaignDiscount >= 0) {
+        currentTotal -= campaignDiscount;
+        discount.push({
+          id: campaign.id,
+          campaign: campaign.name,
+          amount: campaignDiscount,
+        });
+      }
+    });
+  
     return {
       originalTotal,
       finalPrice: currentTotal,
       discount,
     };
   }
+  
 
   private calculateTotal(items: CartItem[]): number {
     return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
