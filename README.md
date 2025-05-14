@@ -1,9 +1,5 @@
-# Playtorium Assignment
+# Cart Nestjs
 
-Playtorium assignment: Cart discount module implementation using NestJS
-
-## Author
-Apichon Changkong
 
 ## Installation
 Clone the repository:
