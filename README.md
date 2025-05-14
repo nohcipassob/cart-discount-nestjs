@@ -4,8 +4,7 @@
 ## Installation
 Clone the repository:
 ```bash
-git clone https://github.com/nohcipassob/playtorium-cart-discount.git
-cd playtorium-cart-discount
+***
 ```
 ### Install dependencies:
 ```bash
@@ -18,8 +17,8 @@ npm run start:dev
 ```
 ### Using Docker
 ```bash
-docker build -t playtorium-products .
-docker run -d -p 3000:3000 --name playtorium-products playtorium-products
+docker build -t [] .
+docker run -d -p 3000:3000 --name [] []
 ```
 ## API Documnetation
 API Documentation
